@@ -11,7 +11,7 @@ const PrimaryAppBar = () => {
     const theme = useTheme()
 
     const isSmallScreenOrMore = useMediaQuery(theme.breakpoints.up("sm"))
-    const {isDrawerOpen, toggleDrawer} = useDrawer()
+    const { toggleDrawer} = useDrawer()
 
 
     return (

@@ -1,10 +1,30 @@
 
 import useCrud from "../../../hooks/useCrud.ts";
 import {useEffect, useState} from "react";
-import MaterialTable from "@material-table/core";
-import { AddBox, ArrowDownward, Check, ChevronLeft, ChevronRight, Clear, DeleteOutline, Edit, FilterList, FirstPage, LastPage, Remove, SaveAlt, Search, ViewColumn } from '@mui/icons-material';
+import MaterialTable, {MTableToolbar} from "@material-table/core";
+import {
+    AddBox,
+    ArrowDownward,
+    Check,
+    ChevronLeft,
+    ChevronRight,
+    Clear,
+    DeleteOutline,
+    Edit,
+    FilterList,
+    FilterNone,
+    FirstPage,
+    LastPage,
+    Remove,
+    SaveAlt,
+    Search,
+    ViewColumn
+} from '@mui/icons-material';
 import {forwardRef} from "react";
+
 import Checkbox from "@mui/material/Checkbox";
+import {Toolbar} from "@mui/material";
+import Button from "@mui/material/Button";
 
 interface RejectedCdr {
     id: number;
@@ -46,9 +66,23 @@ interface RejectedCdr {
 
 const RejectedTable = () => {
     const {dataCRUD, fetchData,} = useCrud<RejectedCdr>([], "/rejected/select/")
+
+    const fetchRejectedData = async () => {
+        await fetchData()
+    }
     useEffect(() => {
-        fetchData()
+        fetchRejectedData()
+        const pollingInterval = setInterval(() => {
+            fetchRejectedData()
+        }, 2 * 60* 1000)
+
+        return () => {
+            clearInterval(pollingInterval)
+        }
     }, [])
+
+
+
 
 
     const columns = [
@@ -112,12 +146,20 @@ const RejectedTable = () => {
 
     // @ts-ignore
     return (
+        <div className="App" style={{ display: "flex", justifyContent: "center", marginTop: "3%" }}>
+            <div style={{ width: "100%", maxWidth: "1500px", marginLeft: "8%" }}>
+                <MaterialTable
+                    columns={columns}
+                    data={dataCRUD}
+                    options={{ filtering: true, padding: "dense", pageSize: 10 }}
+                    icons={tableIcons}
 
-        <div className="App">
-            <MaterialTable columns={columns} data={dataCRUD} options={{filtering:true, doubleHorizontalScroll:true, columnResizable:true}} icons={tableIcons} />
+                    // Add a custom component to the toolbar for the reset button
 
+                />
+            </div>
         </div>
-    )
+    );
 
 
 

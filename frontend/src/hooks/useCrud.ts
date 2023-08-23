@@ -9,6 +9,7 @@ interface IuseCrud<T> {
   fetchData: () => Promise<void>;
   postData: (newData: T) => Promise<void>; // Add a postData function
   updateData: (newData: T, oldData: T) => Promise<T>
+  deleteData: (id: string | number) => Promise<void>
   error: Error | null;
   isLoading: boolean;
 }
@@ -59,10 +60,21 @@ const useCrud = <T>(initialData: T[], apiURL: string): IuseCrud<T> => {
     }
   }
 
+  const deleteData = async (id: string | number) => {
+    try {
+      await jwtAxios.delete(`${BASE_URL}${apiURL}${id}/`);
+      const updatedData = dataCRUD.filter(item => item.id !== id); // Filter out the deleted data
+      setDataCRUD(updatedData);
+    } catch (error){
+      throw error
+    }
+  }
+
   return {
     fetchData,
     postData,
     updateData,
+    deleteData,
     dataCRUD,
     setDataCRUD,
     error,

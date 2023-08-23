@@ -4,6 +4,11 @@ import MaterialTable, {Column} from "@material-table/core"
 import { AddBox, ArrowDownward, Check, ChevronLeft, ChevronRight, Clear, DeleteOutline, Edit, FilterList, FirstPage, LastPage, Remove, SaveAlt, Search, ViewColumn } from '@mui/icons-material';
 import {forwardRef} from "react";
 import Checkbox from "@mui/material/Checkbox";
+import {IconButton, MenuItem, Select, TableCell} from "@mui/material";
+import DeleteConfirmationDialog from "./DeleteConfirmationDialog.tsx";
+import {Simulate} from "react-dom/test-utils";
+import error = Simulate.error;
+import {set} from "js-cookie";
 interface Rule {
     id: bigint
     prtname: string
@@ -19,23 +24,95 @@ interface Rule {
 
 }
 const RulesTable = () => {
-    const {dataCRUD, error, isLoading, fetchData, postData, updateData, setDataCRUD} = useCrud<Rule>([], "/rules/select/")
+    const {dataCRUD, fetchData, postData, updateData, setDataCRUD, deleteData} = useCrud<Rule>([], "/rules/select/")
+    const [selectedRows, setSelectedRows] = useState([])
+
+
+    const [confirmationOpen, setConfirmationOpen] = useState(false)
+
     useEffect(() => {
         fetchData()
     }, [])
 
 
 
+    const handleBulkDelete = async () => {
+        try {
+            for (const row of selectedRows) {
+                await deleteData(row.id)
+            }
+            setSelectedRows([])
+
+
+        } catch (error) {
+            console.error("Error deleting selected rows: ", error)
+        }
+    }
+
+
 
     const columns = [
         {title: "id", field: "id", editable: "never"},
-        {title: "prtname", field: "prtname",},
+        {
+            title: "prtname",
+            field: "prtname",
+            render: rowData => rowData.prtname, // Display the value as-is in non-edit mode
+            editComponent: props => (
+                <TableCell>
+                    <Select
+                        value={props.value || "SMS"} // Default value for new rows
+                        onChange={e => props.onChange(e.target.value)}
+                        style={{ width: "100%" }}
+                    >
+                        <MenuItem value="SMS">SMS</MenuItem>
+                        <MenuItem value="DATA">DATA</MenuItem>
+                        <MenuItem value="VOICE">VOICE</MenuItem>
+                    </Select>
+                </TableCell>
+            ),
+        },
         {title: "priority", field: "priority",},
-        {title: "locationregex", field: "locationregex",},
+        {
+            title: "locationregex",
+            field: "locationregex",
+        },
         {title: "destination", field: "destination",},
-        {title: "username", field: "username",},
+        {
+            title: "username",
+            field: "username",
+            render: rowData => rowData.username, // Display the value as-is in non-edit mode
+            editComponent: props => (
+                <TableCell>
+                    <Select
+                        value={props.value || "[$onr]"} // Default value for new rows
+                        onChange={e => props.onChange(e.target.value)}
+                        style={{ width: "100%" }}
+                    >
+                        <MenuItem value="[$onr]">[$onr]</MenuItem>
+                        <MenuItem value="[$nr]">[$nr]</MenuItem>
+                    </Select>
+                </TableCell>
+            ),
+        },
         {title: "h323remote_address", field: "h323remote_address",},
-        {title: "nas_port_name", field: "nas_port_name",},
+        {
+            title: "nas_port_name",
+            field: "nas_port_name",
+            render: rowData => rowData.nas_port_name, // Display the value as-is in non-edit mode
+            editComponent: props => (
+                <TableCell>
+                    <Select
+                        value={props.value || ""} // Default value for new rows
+                        onChange={e => props.onChange(e.target.value)}
+                        style={{ width: "100%" }}
+                    >
+                        <MenuItem value=""> None </MenuItem>
+                        <MenuItem value="SMS">SMS</MenuItem>
+                        <MenuItem value="Internet">Internet</MenuItem>
+                    </Select>
+                </TableCell>
+            ),
+        },
         {title: "active" , field: "active", type: "boolean", render: rowData => (
                 <Checkbox checked={rowData.active} disabled />
             ),},
@@ -68,52 +145,65 @@ const RulesTable = () => {
 
     // @ts-ignore
     return (
-        <div className="App">
-            <MaterialTable
-                icons={tableIcons}
-                title="RULES"
-                columns={columns}
-                data={dataCRUD}
-                options={{ actionsColumnIndex: -1, addRowPosition: "first", filtering:true }}
-                editable={{
-                    onRowAdd: (newData) =>
-                        new Promise<void>((resolve, reject) => {
-                            postData(newData)
-                                .then(() => {
-                                    fetchData();
-                                    resolve();
-                                })
-                                .catch((error) => {
-                                    console.error("Error adding new rule:", error);
-                                    reject();
-                                });
-                        }),
-
-                    onRowUpdate: (newData, oldData) =>
-                        new Promise<void>((resolve, reject) => {
-                            newData.modified = new Date().toISOString()
-                            if (!setDataCRUD) {
-                                reject(new Error("setDataCRUD is not available"));
-                                return;
-                            }
-                            updateData(newData, oldData)
-                                .then((updatedData) => {
-                                    const updatedDataCRUD = dataCRUD.map(item => {
-                                        if (item.id === updatedData.id) {
-                                            return updatedData;
-                                        }
-                                        return item;
+        <div className="App" style={{ display: "flex", justifyContent: "center", marginTop: "3%" }}>
+            <div style={{ width: "100%", maxWidth: "1500px", marginLeft: "8%" }}>
+                <MaterialTable
+                    icons={tableIcons}
+                    title="RULES"
+                    columns={columns}
+                    onSelectionChange={(rows) => {
+                        setSelectedRows(rows);
+                    }}
+                    data={dataCRUD}
+                    options={{ actionsColumnIndex: -1, addRowPosition: "first", filtering:true, padding:"dense", pageSize:10, selection:true }}
+                    editable={{
+                        onRowAdd: (newData) =>
+                            new Promise<void>((resolve, reject) => {
+                                postData(newData)
+                                    .then(() => {
+                                        fetchData();
+                                        resolve();
+                                    })
+                                    .catch((error) => {
+                                        console.error("Error adding new rule:", error);
+                                        reject();
                                     });
-                                    setDataCRUD(updatedDataCRUD);
-                                    resolve();
-                                })
-                                .catch((error) => {
-                                    console.error("Error updating rule:", error);
-                                    reject();
-                                });
-                        }),
-                }}
-            />
+                            }),
+
+                        onRowUpdate: (newData, oldData) =>
+                            new Promise<void>((resolve, reject) => {
+                                newData.modified = new Date().toISOString()
+                                if (!setDataCRUD) {
+                                    reject(new Error("setDataCRUD is not available"));
+                                    return;
+                                }
+                                updateData(newData, oldData)
+                                    .then((updatedData) => {
+                                        const updatedDataCRUD = dataCRUD.map(item => {
+                                            if (item.id === updatedData.id) {
+                                                return updatedData;
+                                            }
+                                            return item;
+                                        });
+                                        setDataCRUD(updatedDataCRUD);
+                                        resolve();
+                                    })
+                                    .catch((error) => {
+                                        console.error("Error updating rule:", error);
+                                        reject();
+                                    });
+                            }),
+                    }}
+                    actions = {[
+                        {icon: () => <IconButton> <DeleteOutline/> </IconButton>, tooltip: "Delete all selected rows",
+                        onClick: handleBulkDelete},
+                    ]}
+                />
+
+
+
+        </div>
+
         </div>
     );
 }

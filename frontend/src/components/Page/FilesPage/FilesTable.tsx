@@ -5,8 +5,13 @@ import { AddBox, ArrowDownward, Check, ChevronLeft, ChevronRight, Clear, DeleteO
 import {forwardRef} from "react";
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import {Box, IconButton} from "@mui/material";
+import { CsvBuilder } from 'filefy';
+
 
 import CDRsModal from "./cdrs/CDRsModal.tsx";
+import Dialog from "@mui/material/Dialog";
+import DialogContent from "@mui/material/DialogContent";
+import Button from "@mui/material/Button";
 interface FileEntry {
     id: bigint
     filename: string
@@ -25,6 +30,7 @@ const FilesTable = () => {
     const {dataCRUD, fetchData,} = useCrud<FileEntry>([], "/files/select/")
     const [selectedFileId, setSelectedFileId] = useState(null); // State to store the selected file_id
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedRows, setSelectedRows] = useState([])
     const openModal = () => {
         setIsModalOpen(true);
     };
@@ -33,9 +39,28 @@ const FilesTable = () => {
         setIsModalOpen(false);
     };
 
+    const pollingInterval = 2 * 60 * 1000
+
     useEffect(() => {
-        fetchData()
+        const fetchDataAndPoll = async () => {
+            await fetchData()
+        }
+
+        fetchDataAndPoll()
+
+        const pollingTimer = setInterval(() => {
+            fetchDataAndPoll()
+        }, pollingInterval)
+
+
+        return () => {
+            clearInterval(pollingTimer)
+        }
+
+
     }, [])
+
+
 
 
 
@@ -90,16 +115,37 @@ const FilesTable = () => {
         ViewColumn: forwardRef((props, ref) => <ViewColumn {...props} ref={ref} />)
     };
 
-    return (
-        <div className="App">
 
-            <MaterialTable
+    const exportAllSelectedRows = () => {
+
+        const columnToExport = columns.filter(col => col.title !== "Show CDRS")
+        var csvBuilder = new CsvBuilder("user_list.csv")
+            .setColumns(columnToExport.map(col=>col.title))
+            .addRows(selectedRows.map(rowData=>columns.map(col=>rowData[col.field])))
+            .exportFile();
+    }
+
+
+    return (
+        <div className="App" style={{display:"flex", justifyContent:"center", marginTop:"3%"}}>
+
+            <div style={{width: "100%", maxWidth: "1500px", marginLeft:"8%"}}>
+                <MaterialTable
                 icons={tableIcons}
                 title="FILE ENTRIES"
                 columns={columns}
                 data={dataCRUD}
-                options={{ actionsColumnIndex: -1, addRowPosition: "first", filtering:true }}
+                onSelectionChange={(rows) => setSelectedRows(rows)}
+                options={{ actionsColumnIndex: -1, addRowPosition: "first", filtering:true, padding: "dense", pageSize:10, selection: true}}
+                actions = {[
+                    {icon: () => <IconButton> <SaveAlt/> </IconButton>,
+                    tooltip: "Export all selected rows",
+                    onClick: () => exportAllSelectedRows()}
+                ]}
             />
+
+            </div>
+
 
             {isModalOpen && (
                 <CDRsModal open={isModalOpen} onClose={closeModal} selectedFileId={selectedFileId} />

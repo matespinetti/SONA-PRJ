@@ -1,39 +1,38 @@
-import {createBrowserRouter, createRoutesFromElements, Route, RouterProvider} from "react-router-dom";
-import Home from "./pages/Home"
 import React from "react";
-import Rules from "./pages/Rules.tsx";
-import Files from "./pages/Files.tsx";
-import Rejected from "./pages/Rejected.tsx";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthServiceProvider } from "./context/AuthContext.tsx";
 import ToggleColorMode from "./components/ToggleColorMode.tsx";
-import Login from "./pages/Login.tsx";
-import {DrawerProvider} from "./context/DrawerProvider.tsx";
-import {AuthServiceProvider} from "./context/AuthContext.tsx";
-const router = createBrowserRouter(
-    createRoutesFromElements(
-        <Route>
-          <Route path="/" element = {<Home />} />
-            <Route path="/rules" element={<Rules />} />
-            <Route path="/files" element={<Files />} />
-            <Route path="/rejected" element={<Rejected />}/>
-            <Route path = "/login" element={<Login /> }/>
-        </Route>
-    )
-)
+import { DrawerProvider } from "./context/DrawerProvider.tsx";
+import Home from "./pages/Home";
+import Rules from "./pages/Rules";
+import Files from "./pages/Files";
+import Rejected from "./pages/Rejected";
+import Login from "./pages/Login";
+import ProtectedRoute from "./services/ProtectedRoute.tsx";
+
 const App: React.FC = () => {
+    return (
+        <BrowserRouter>
+            <AuthServiceProvider>
+                <ToggleColorMode>
+                    <DrawerProvider>
+                        <Routes>
+                            {/* Non-protected route */}
+                            <Route path="/login" element={  <Login />} />
 
-  return(
-      <AuthServiceProvider>
-          <ToggleColorMode>
-              <DrawerProvider>
-                  <RouterProvider router={router} />
-              </DrawerProvider>
+                            {/* Protected routes */}
+                                <Route path = "/" index element={<ProtectedRoute> <Home /></ProtectedRoute>} />
+                                <Route path="/rules" element={ <ProtectedRoute> <Rules /> </ProtectedRoute> } />
+                                <Route path="/files" element={<ProtectedRoute> <Files /> </ProtectedRoute> } />
+                                <Route path="/rejected" element={<ProtectedRoute> <Rejected /> </ProtectedRoute> } />
 
-          </ToggleColorMode>
+                        </Routes>
+                    </DrawerProvider>
+                </ToggleColorMode>
+            </AuthServiceProvider>
+        </BrowserRouter>
+    );
+};
 
-      </AuthServiceProvider>
-
-
-  )
-}
 
 export default App

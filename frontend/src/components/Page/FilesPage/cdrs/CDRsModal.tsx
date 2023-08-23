@@ -77,13 +77,23 @@ const CDRsModal = ({ open, onClose, selectedFileId }) => {
         ViewColumn: forwardRef((props, ref) => <ViewColumn {...props} ref={ref} />)
     };
 
-    useEffect(() => {
+    const fetchCDRsData = async () => {
         if (open && selectedFileId) {
-            fetchData().then((data) => {
-                setCdrsData(data);
-            });
+            const data = await fetchData()
+            setCdrsData(data)
         }
-    }, [open, selectedFileId]);
+    }
+
+    useEffect(() => {
+        fetchCDRsData()
+        const pollingInterval = setInterval(() => {
+            fetchCDRsData()
+        }, 2* 60 * 1000)
+
+        return () => {
+            clearInterval(pollingInterval)
+        }
+    }, [open, selectedFileId])
     const cdrsColumns = [
         { title: "ID", field: "id" },
         { title: "Seq ID", field: "seq_id" },
@@ -127,9 +137,9 @@ const CDRsModal = ({ open, onClose, selectedFileId }) => {
             <DialogTitle>View CDRs</DialogTitle>
             <DialogContent>
                 <div style={{ marginBottom: "16px" }}>
-                    <span style={{ color: "green" }}>{legend.accepted}</span>
+                    <span style={{ color: "#99DDCC" }}>{legend.accepted}</span>
                     {" - "}
-                    <span style={{ color: "red" }}>{legend.rejected}</span>
+                    <span style={{ color: "#FFE2E2" }}>{legend.rejected}</span>
                 </div>
                 <MaterialTable
                     title="CDRs"
@@ -138,7 +148,7 @@ const CDRsModal = ({ open, onClose, selectedFileId }) => {
                     icons={tableIcons}
                     options={{
                         rowStyle: rowData => ({
-                            backgroundColor: rowData.rule_id !== null ? "green" : "red",
+                            backgroundColor: rowData.rule_id !== null ? "#99DDCC" : "#FFE2E2",
                         }),
                     }}
                 />
